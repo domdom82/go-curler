@@ -32,30 +32,32 @@ func main() {
 		flag.Usage()
 	}
 
-	dl := &net.Dialer{
-		Timeout: 30 * time.Second,
-	}
+	newClient := func() *http.Client {
+		dl := &net.Dialer{
+			Timeout: 30 * time.Second,
+		}
 
-	if *tcpKeepalive {
-		dl.KeepAlive = 10 * time.Second
-	} else {
-		dl.KeepAlive = -1
-	}
+		if *tcpKeepalive {
+			dl.KeepAlive = 10 * time.Second
+		} else {
+			dl.KeepAlive = -1
+		}
 
-	tr := &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		DialContext:           (dl).DialContext,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
+		tr := &http.Transport{
+			Proxy:                 http.ProxyFromEnvironment,
+			DialContext:           dl.DialContext,
+			MaxIdleConns:          100,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		}
+		client := &http.Client{Transport: tr}
+		return client
 	}
-	client := &http.Client{Transport: tr}
 
 	for {
 		fmt.Printf("-> GET %s\n", url)
 		start := time.Now()
-		r, err := client.Get(url)
+		r, err := newClient().Get(url)
 		stop := time.Now()
 		duration := stop.Sub(start)
 		if err != nil {
