@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -13,6 +14,8 @@ import (
 
 func main() {
 	loop := flag.Bool("loop", false, "Keep calling the URL forever.")
+	insecure := flag.Bool("insecure", false, "Allow insecure server connections.")
+	serverName := flag.String("sni", "", "Server name to use for SNI.")
 	loopInterval := flag.Duration("interval", 1*time.Second, "Interval if loop is used.")
 	tcpKeepalive := flag.Bool("tcpKeepAlive", true, "Use tcp keep-alive.")
 
@@ -43,10 +46,16 @@ func main() {
 			dl.KeepAlive = -1
 		}
 
+		tlsConfig := &tls.Config{
+			ServerName:         *serverName,
+			InsecureSkipVerify: *insecure,
+		}
+
 		tr := &http.Transport{
 			Proxy:                 http.ProxyFromEnvironment,
 			DialContext:           dl.DialContext,
 			MaxIdleConns:          100,
+			TLSClientConfig:       tlsConfig,
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		}
